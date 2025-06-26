@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Kodi Addon Creator</title>
+  <style>
+    body {
+      background: #121212;
+      color: #ffffff;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    textarea, input[type="file"] {
+      width: 100%;
+      margin-bottom: 15px;
+      background: #1e1e1e;
+      color: white;
+      border: none;
+      padding: 10px;
+    }
+    button {
+      background: #03DAC5;
+      color: #000;
+      padding: 10px 20px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    #resources {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📦 Kodi Addon Creator</h2>
+
+<label>Paste your <b>addon.xml</b>:</label>
+<textarea id="xml"></textarea>
+
+<label>Paste your <b>main.py</b>:</label>
+<textarea id="py"></textarea>
+
+<label><input type="checkbox" id="resToggle"> Include resources (fanart, icon, icon_folder)</label>
+
+<div id="resources">
+  <label>Fanart:</label><input type="file" id="fanart"><br>
+  <label>Icon:</label><input type="file" id="icon"><br>
+  <label>Icon Folder:</label><input type="file" id="icon_folder">
+</div>
+
+<br><button onclick="generateZip()">✅ Done</button>
+
+<script>
+document.getElementById('resToggle').addEventListener('change', () => {
+  document.getElementById('resources').style.display = 
+    document.getElementById('resToggle').checked ? 'block' : 'none';
+});
+
+async function generateZip() {
+  const xml = document.getElementById("xml").value.trim();
+  const py = document.getElementById("py").value.trim();
+  if (!xml || !py) return alert("Please enter both XML and Python code.");
+
+  const idMatch = xml.match(/id="([^"]+)"/);
+  const folderName = idMatch ? `plugin.${idMatch[1]}` : "plugin.unknown";
+
+  const zip = new JSZip();
+  const folder = zip.folder(folderName);
+  folder.file("addon.xml", xml);
+  folder.file("main.py", py);
+
+  if (document.getElementById('resToggle').checked) {
+    const res = folder.folder("resources");
+
+    const fanart = document.getElementById("fanart").files[0];
+    const icon = document.getElementById("icon").files[0];
+    const icon_folder = document.getElementById("icon_folder").files[0];
+
+    if (fanart) res.file("fanart.png", await fanart.arrayBuffer());
+    if (icon) res.file("icon.png", await icon.arrayBuffer());
+    if (icon_folder) res.file("icon_folder.png", await icon_folder.arrayBuffer());
+  }
+
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${folderName}.zip`;
+  a.click();
+}
+</script>
+
+<!-- JSZip Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+</body>
+</html>
